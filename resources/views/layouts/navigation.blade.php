@@ -39,6 +39,9 @@
                                         <x-dropdown-link :href="route('empleados.index')" class="text-gray-700 hover:bg-gray-200">
                                             {{ __('Gestionar Usuarios') }}
                                         </x-dropdown-link>
+                                        <x-dropdown-link :href="route('departamento.tablas.index')" class="text-gray-700 hover:bg-gray-200">
+                                            {{ __('Departamento Tablas') }}
+                                        </x-dropdown-link>
                                      
                                 </x-slot>
                             </x-dropdown>

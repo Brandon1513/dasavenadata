@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\EmpleadoController;
+use App\Http\Controllers\DepartamentoController;
+use App\Http\Controllers\DepartamentoTablaController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -69,6 +71,21 @@ Route::middleware(['auth', 'role:validador'])->group(function () {
     Route::patch('/importaciones/{id}/aprobar', [UploadController::class, 'aprobar'])->name('importaciones.aprobar');
     Route::patch('/importaciones/{id}/rechazar', [UploadController::class, 'rechazar'])->name('importaciones.rechazar');
 });
+
+
+//departamento tablas
+
+Route::middleware(['auth', 'role:administrador'])->group(function () {
+    Route::resource('departamento-tablas', DepartamentoTablaController::class)->names('departamento.tablas');
+});
+
+//departamentos
+Route::middleware(['auth', 'role:administrador'])->group(function () {
+    Route::resource('departamentos', DepartamentoController::class)->names('departamentos');
+    Route::patch('/departamentos/{id}/toggle', [DepartamentoController::class, 'toggle'])->name('departamentos.toggle');
+
+});
+
 
 
 
