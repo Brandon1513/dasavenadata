@@ -87,6 +87,7 @@
                         <x-text-input id="password_confirmation" name="password_confirmation" type="password"
                                        class="block w-full mt-1" />
                     </div>
+                    
 
                     <!-- Botón -->
                     <div>
@@ -94,6 +95,12 @@
                             {{ __('Guardar Cambios') }}
                         </x-primary-button>
                     </div>
+                </form>
+                <form action="{{ route('empleados.reenviarCorreo', $empleado->id) }}" method="POST" class="mt-3">
+                            @csrf
+                            <button type="submit" class="btn btn-primary">
+                                Reenviar correo de bienvenida
+                            </button>
                 </form>
             </div>
         </div>

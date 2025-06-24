@@ -40,6 +40,8 @@ Route::prefix('empleados')->middleware(['auth', 'role:administrador'])->group(fu
     Route::put('/{empleado}', [EmpleadoController::class, 'update'])->name('empleados.update');
     Route::delete('/{empleado}', [EmpleadoController::class, 'destroy'])->name('empleados.destroy');
     Route::patch('/{empleado}/toggle', [EmpleadoController::class, 'toggle'])->name('empleados.toggle');
+    Route::post('/empleados/{empleado}/reenviar-correo', [EmpleadoController::class, 'reenviarCorreo'])->name('empleados.reenviarCorreo');
+
 
 });
 
@@ -94,6 +96,8 @@ Route::middleware(['auth', 'role:administrador'])->group(function () {
     Route::get('/departamentos/{id}/tablas', [ValidadorTablaController::class, 'getTablasPorDepartamento']);
 
 });
+
+
 
 
 

@@ -6,7 +6,10 @@ use App\Models\User;
 use App\Models\Departamento;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Mail;
 use App\Notifications\UsuarioCreadoNotification;
+use Illuminate\Support\Str;
+
 
 class EmpleadoController extends Controller
 {
@@ -107,4 +110,22 @@ public function update(Request $request, User $empleado)
         return redirect()->back()->with('success', 'Estado del usuario actualizado.');
     }
     // Agrega métodos para editar, actualizar, eliminar si quieres.
+
+    public function reenviarCorreo(User $empleado)
+{
+    // 1. Generar nueva contraseña
+    $nuevaPassword = Str::random(10);
+
+    // 2. Actualizar la contraseña encriptada
+    $empleado->password = bcrypt($nuevaPassword);
+    $empleado->save();
+
+    // 3. Obtener el rol asignado (por simplicidad, tomamos el primero)
+    $rol = $empleado->getRoleNames()->first();
+
+    // 4. Enviar correo
+    Mail::to($empleado->email)->send(new \App\Mail\BienvenidaEmpleadoMail($empleado, $nuevaPassword, $rol));
+
+    return back()->with('success', 'Correo de bienvenida enviado correctamente con nueva contraseña.');
+}
 }
