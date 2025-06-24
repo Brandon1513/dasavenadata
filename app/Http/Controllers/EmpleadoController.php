@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Departamento;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
+use App\Notifications\UsuarioCreadoNotification;
 
 class EmpleadoController extends Controller
 {
@@ -31,28 +32,37 @@ class EmpleadoController extends Controller
         return view('empleados.create', compact('departamentos', 'roles'));
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|confirmed',
-            'departamento_id' => 'required|exists:departamentos,id',
-            'roles' => 'required|array',
-            'roles.*' => 'exists:roles,name',
-        ]);
+    
 
-        $empleado = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'departamento_id' => $request->departamento_id,
-            'password' => bcrypt($request->password),
-        ]);
 
-        $empleado->syncRoles($request->roles);
+public function store(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string',
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required|confirmed',
+        'departamento_id' => 'required|exists:departamentos,id',
+        'roles' => 'required|array',
+        'roles.*' => 'exists:roles,name',
+    ]);
 
-        return redirect()->route('empleados.index')->with('success', 'Empleado creado correctamente.');
-    }
+    $passwordTemporal = $request->password; // ya viene desde el formulario
+
+    $empleado = User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'departamento_id' => $request->departamento_id,
+        'password' => bcrypt($passwordTemporal),
+    ]);
+
+    $empleado->syncRoles($request->roles);
+
+    // Enviar notificación por correo
+    $empleado->notify(new UsuarioCreadoNotification($empleado, $passwordTemporal));
+
+    return redirect()->route('empleados.index')->with('success', 'Empleado creado correctamente.');
+}
+
 
     public function edit(User $empleado)
 {
