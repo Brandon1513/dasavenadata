@@ -15,4 +15,11 @@ class DepartamentoTabla extends Model
     {
         return $this->belongsTo(Departamento::class);
     }
+    public function scopeActivos($query)
+    {
+        return $query->whereHas('departamento', function ($q) {
+            $q->where('activo', 1);
+        });
+    }
+
 }

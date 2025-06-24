@@ -5,6 +5,7 @@ use App\Http\Controllers\UploadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\DepartamentoController;
+use App\Http\Controllers\ValidadorTablaController;
 use App\Http\Controllers\DepartamentoTablaController;
 
 Route::get('/', function () {
@@ -22,7 +23,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'role:administrador|lider'])->group(function () {
     Route::get('/subir-archivo', [UploadController::class, 'showForm'])->name('upload.form');
     Route::post('/subir-archivo', [UploadController::class, 'upload'])->name('upload.file');
     Route::post('/upload/map', [UploadController::class, 'map'])->name('upload.map');
@@ -83,6 +84,14 @@ Route::middleware(['auth', 'role:administrador'])->group(function () {
 Route::middleware(['auth', 'role:administrador'])->group(function () {
     Route::resource('departamentos', DepartamentoController::class)->names('departamentos');
     Route::patch('/departamentos/{id}/toggle', [DepartamentoController::class, 'toggle'])->name('departamentos.toggle');
+
+});
+
+//validadores de tablas
+
+Route::middleware(['auth', 'role:administrador'])->group(function () {
+    Route::resource('validador-tablas', ValidadorTablaController::class)->names('validador-tablas');
+    Route::get('/departamentos/{id}/tablas', [ValidadorTablaController::class, 'getTablasPorDepartamento']);
 
 });
 

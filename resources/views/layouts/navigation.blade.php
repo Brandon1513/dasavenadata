@@ -42,6 +42,12 @@
                                         <x-dropdown-link :href="route('departamento.tablas.index')" class="text-gray-700 hover:bg-gray-200">
                                             {{ __('Departamento Tablas') }}
                                         </x-dropdown-link>
+                                        <x-dropdown-link :href="route('departamentos.index')" class="text-gray-700 hover:bg-gray-200">
+                                            {{ __('Departamentos') }}
+                                        </x-dropdown-link>
+                                        <x-dropdown-link :href="route('validador-tablas.index')" class="text-gray-700 hover:bg-gray-200">
+                                            {{ __('Validador') }}
+                                        </x-dropdown-link>
                                      
                                 </x-slot>
                             </x-dropdown>
@@ -62,12 +68,14 @@
                                     </button>
                                 </x-slot>
                                 <x-slot name="content">
+                                    @role('lider')
                                     <x-dropdown-link :href="route('upload.form')" class="text-gray-700 hover:bg-gray-200">
                                         {{ __('Subir datos') }}
                                     </x-dropdown-link>
                                     <x-dropdown-link :href="route('importaciones.historial')" class="text-gray-700 hover:bg-gray-200">
                                         {{ __('Historial Importaciones') }}
                                     </x-dropdown-link>
+                                    @endrole
                                     @role('validador')
                                         <x-dropdown-link :href="route('importaciones.validar')" class="text-gray-700 hover:bg-gray-200">
                                             {{ __('Validar Importaciones') }}

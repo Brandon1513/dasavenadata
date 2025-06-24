@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\ImportacionPendienteNotification;
 use App\Models\User;
+use App\Models\ValidadorTabla;
 
 
 
@@ -42,39 +43,56 @@ class UploadController extends Controller
         return view('lideres.upload', compact('tablasPermitidas'));
     }
 
-    public function upload(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|file|mimes:csv,xlsx',
-            'tabla' => 'required'
-        ]);
 
-        $file = $request->file('file');
-        $path = $file->store('uploads');
+public function upload(Request $request)
+{
+    $request->validate([
+        'file' => 'required|file|mimes:csv,xlsx',
+        'tabla' => 'required'
+    ]);
 
-        $data = Excel::toCollection(null, $file)[0];
-        $contador = $data->count();
+    $file = $request->file('file');
+    $path = $file->store('uploads');
 
-        $importacion = Importacion::create([
-            'user_id' => Auth::id(),
-            'tabla' => $request->tabla,
-            'archivo_original' => basename($path),
-            'filas_importadas' => $contador,
-            'estatus' => 'pendiente'
-        ]);
+    $data = Excel::toCollection(null, $file)[0];
+    $contador = $data->count();
 
-        // Notificar a los validadores
-        $validadores = User::role('validador')->get();
-        Notification::send($validadores, new ImportacionPendienteNotification($importacion));
+    $importacion = Importacion::create([
+        'user_id' => Auth::id(),
+        'tabla' => $request->tabla,
+        'archivo_original' => basename($path),
+        'filas_importadas' => $contador,
+        'estatus' => 'pendiente'
+    ]);
 
-        return redirect()->route('upload.form')->with('success', 'Archivo enviado para validación.');
+    // Obtener el departamento del usuario que sube el archivo
+    $departamentoId = Auth::user()->departamento_id;
+
+    // Buscar al validador asignado a ese departamento y tabla
+    $validadorAsignado = ValidadorTabla::where('departamento_id', $departamentoId)
+        ->where('tabla', $request->tabla)
+        ->first()?->validador;
+
+    // Enviar la notificación solo al validador asignado
+    if ($validadorAsignado) {
+        $validadorAsignado->notify(new ImportacionPendienteNotification($importacion));
     }
+
+    return redirect()->route('upload.form')->with('success', 'Archivo enviado para validación.');
+}
+
 
 public function validarVista($id)
 {
     $importacion = Importacion::findOrFail($id);
+    $user = auth()->user();
 
-    
+    // Validar que el validador tenga acceso a esta tabla
+    $tablasPermitidas = $user->tablasValidador()->pluck('tabla')->toArray();
+
+    if (!in_array($importacion->tabla, $tablasPermitidas)) {
+        abort(403, 'No tienes permiso para validar esta importación.');
+    }
 
     $filePath = storage_path('app/private/uploads/' . $importacion->archivo_original);
 
@@ -82,9 +100,9 @@ public function validarVista($id)
         return redirect()->back()->with('error', 'Archivo no encontrado.');
     }
 
-    $data = Excel::toCollection(null, $filePath)[0];
+    $data = \Maatwebsite\Excel\Facades\Excel::toCollection(null, $filePath)[0];
     $previewRows = $data->take(5);
-    $headers = $data->first()->toArray();
+    $headers = $data->first() ? $data->first()->toArray() : [];
 
     return view('validadores.preview', [
         'importacion' => $importacion,
@@ -95,6 +113,7 @@ public function validarVista($id)
         'tableColumns' => \Schema::getColumnListing($importacion->tabla)
     ]);
 }
+
 
 
 
@@ -147,37 +166,72 @@ public function validarVista($id)
         return view('lideres.importaciones-detalle', compact('importacion', 'datos'));
     }
     public function validacionesIndex(Request $request)
-    {
-        $query = Importacion::with('user');
+{
+    $user = auth()->user();
 
-        if ($request->filled('usuario')) {
-            $query->whereHas('user', function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->usuario . '%');
-            });
-        }
+    // Obtener las tablas que este validador tiene asignadas
+    $tablasPermitidas = $user->tablasValidador()->pluck('tabla')->toArray();
 
-        if ($request->filled('estatus')) {
-            $query->where('estatus', $request->estatus);
-        }
-
-        if ($request->filled('desde')) {
-            $query->whereDate('created_at', '>=', $request->desde);
-        }
-
-        if ($request->filled('hasta')) {
-            $query->whereDate('created_at', '<=', $request->hasta);
-        }
-
-        $importaciones = $query->orderByDesc('created_at')->paginate(10)->appends($request->query());
-
-        return view('validadores.index', compact('importaciones'));
+    // Si no tiene tablas asignadas, que no vea nada
+    if (empty($tablasPermitidas)) {
+        $importaciones = collect(); // colección vacía
+        $usuarios = collect(); // colección vacía para evitar errores en la vista
+        return view('validadores.index', compact('importaciones', 'usuarios'));
     }
+
+    // Obtener usuarios relacionados con esas importaciones (solo para el select)
+    $usuarios = \App\Models\User::whereHas('importaciones', function ($q) use ($tablasPermitidas) {
+        $q->whereIn('tabla', $tablasPermitidas);
+    })->orderBy('name')->get();
+
+    // Filtrar importaciones por esas tablas
+    $query = \App\Models\Importacion::with('user')
+        ->whereIn('tabla', $tablasPermitidas);
+
+    // Filtros adicionales
+    if ($request->filled('usuario')) {
+        $query->where('user_id', $request->usuario); // filtrando por ID del usuario
+    }
+
+    if ($request->filled('estatus')) {
+        $query->where('estatus', $request->estatus);
+    }
+
+    if ($request->filled('desde')) {
+        $query->whereDate('created_at', '>=', $request->desde);
+    }
+
+    if ($request->filled('hasta')) {
+        $query->whereDate('created_at', '<=', $request->hasta);
+    }
+
+    $importaciones = $query->orderByDesc('created_at')->paginate(10)->appends($request->query());
+
+    return view('validadores.index', compact('importaciones', 'usuarios'));
+}
+
+
 
     
-   public function aprobar($id)
+ public function aprobar($id)
     {
-        return redirect()->route('importaciones.validarVista', $id);
+        $importacion = Importacion::findOrFail($id);
+        $user = auth()->user();
+
+        // Validar que el validador tenga permiso sobre la tabla
+        $tablasPermitidas = $user->tablasValidador()->pluck('tabla')->toArray();
+
+        if (!in_array($importacion->tabla, $tablasPermitidas)) {
+            abort(403, 'No tienes permiso para aprobar esta importación.');
+        }
+
+        $importacion->estatus = 'aprobada';
+        $importacion->validador_id = $user->id;
+        $importacion->save();
+
+        return redirect()->route('importaciones.validar')->with('success', 'Importación aprobada correctamente.');
     }
+
 
 
 
@@ -185,6 +239,14 @@ public function validarVista($id)
    public function rechazar($id)
     {
         $importacion = Importacion::findOrFail($id);
+        $user = auth()->user();
+
+        // Validar que el validador tenga permiso sobre la tabla
+        $tablasPermitidas = $user->tablasValidador()->pluck('tabla')->toArray();
+
+        if (!in_array($importacion->tabla, $tablasPermitidas)) {
+            abort(403, 'No tienes permiso para rechazar esta importación.');
+        }
 
         // Elimina el archivo físico si existe
         $filePath = storage_path('app/private/uploads/' . $importacion->archivo_original);

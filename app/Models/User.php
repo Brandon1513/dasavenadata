@@ -52,5 +52,15 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Departamento::class);
     }
+    public function tablasValidador()
+    {
+        return $this->hasMany(\App\Models\ValidadorTabla::class, 'validador_id');
+    }
+    public function importaciones()
+    {
+        return $this->hasMany(\App\Models\Importacion::class, 'user_id');
+    }
+
+
 }
 
