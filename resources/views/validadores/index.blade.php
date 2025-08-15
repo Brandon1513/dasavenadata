@@ -8,11 +8,23 @@
     <div class="py-6">
         <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div class="p-6 bg-white shadow sm:rounded-lg">
+                @if(session('success'))
+                    <div class="p-3 mb-4 text-sm text-green-700 bg-green-100 border border-green-300 rounded">
+                        {{ session('success') }}
+                    </div>
+                @endif
+
+                @if(session('error'))
+                    <div class="p-3 mb-4 text-sm text-red-700 bg-red-100 border border-red-300 rounded">
+                        {{ session('error') }}
+                    </div>
+                @endif
+
 
                 <!-- Filtros -->
                 <form method="GET" class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
+                        <label class="block mb-1 text-sm font-medium text-gray-700">Usuario</label>
                         <select name="usuario" class="w-full border-gray-300 rounded">
                             <option value="">-- Todos --</option>
                             @foreach ($usuarios as $usuario)
@@ -24,7 +36,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Estatus</label>
+                        <label class="block mb-1 text-sm font-medium text-gray-700">Estatus</label>
                         <select name="estatus" class="w-full border-gray-300 rounded">
                             <option value="">-- Todos --</option>
                             <option value="pendiente" {{ request('estatus') == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
@@ -34,16 +46,16 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Desde</label>
+                        <label class="block mb-1 text-sm font-medium text-gray-700">Desde</label>
                         <input type="date" name="desde" value="{{ request('desde') }}" class="w-full border-gray-300 rounded">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
+                        <label class="block mb-1 text-sm font-medium text-gray-700">Hasta</label>
                         <input type="date" name="hasta" value="{{ request('hasta') }}" class="w-full border-gray-300 rounded">
                     </div>
 
-                    <div class="md:col-span-4 text-right">
+                    <div class="text-right md:col-span-4">
                         <x-primary-button>Filtrar</x-primary-button>
                         <a href="{{ route('importaciones.validar') }}" class="ml-2 text-sm text-gray-600 underline">Limpiar</a>
                     </div>
