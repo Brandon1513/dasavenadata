@@ -14,9 +14,36 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Notification;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Str;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+
 
 class UploadController extends Controller
 {
+   public function preview(Importacion $importacion)
+    {
+        // storage/app/private/uploads/{archivo}
+        $relPath  = "private/uploads/{$importacion->archivo_original}";
+        $fullPath = storage_path('app/'.$relPath);
+
+        if (!file_exists($fullPath)) {
+            abort(404, 'Archivo no encontrado');
+        }
+
+        try {
+            // Primera hoja (XLSX) o archivo completo (CSV)
+            $collection = Excel::toCollection(null, $fullPath)->first();
+        } catch (\Throwable $e) {
+            return back()->with('error', 'No se pudo leer el archivo para la vista previa.');
+        }
+
+        $rows    = $collection?->take(500) ?? collect();
+        $headers = $rows->first() ? array_keys($rows->first()->toArray()) : [];
+
+        // Vista en resources/views/lideres/importaciones/preview.blade.php
+        return view('lideres.importaciones.preview', compact('importacion', 'rows', 'headers'))
+               ->with('limit', 500);
+    }
     /* ===================== LÍDER: HISTORIAL ===================== */
     public function historial()
     {
@@ -471,4 +498,27 @@ class UploadController extends Controller
         $s = preg_replace('/\s+/', ' ', $s);
         return Str::limit($s, $max, '');
     }
+
+
+public function download(\App\Models\Importacion $importacion)
+{
+    // Como el root del disco 'local' es storage/app/private,
+    // aquí SOLO va 'uploads/...'
+    $path = "uploads/{$importacion->archivo_original}";
+
+    if (!Storage::disk('local')->exists($path)) {
+        abort(404, 'Archivo no encontrado');
+    }
+
+    $downloadName = $importacion->nombre_original ?? $importacion->archivo_original;
+
+    return response()->streamDownload(function () use ($path) {
+        echo Storage::disk('local')->get($path);
+    }, $downloadName, [
+        'Content-Type'  => Storage::disk('local')->mimeType($path) ?? 'application/octet-stream',
+        'Cache-Control' => 'no-store',
+    ]);
+}
+
+
 }

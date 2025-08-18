@@ -50,20 +50,16 @@ Route::middleware(['auth', 'role:administrador|lider'])->group(function () {
     Route::get('/importaciones', [UploadController::class, 'historial'])->name('importaciones.historial');
     Route::delete('/importaciones/{id}', [UploadController::class, 'eliminarImportacion'])->name('importaciones.eliminar');
     Route::get('/importaciones/{id}/detalle', [UploadController::class, 'verDetalle'])->name('importaciones.detalle');
-    Route::get('/ver-archivo/{nombre}', function ($nombre) {
-        $path = storage_path("app/private/uploads/{$nombre}");
 
-        if (!file_exists($path)) {
-            abort(404);
-        }
+    // ✅ Vista previa
+    Route::get('/importaciones/{importacion}/preview', [UploadController::class, 'preview'])
+        ->name('importaciones.preview');
 
-        return response()->file($path); // Usa ->download($path) si prefieres descarga directa
-    })->name('ver.archivo')->middleware('auth');
-    Route::delete('/importaciones/{id}/eliminar', [UploadController::class, 'eliminarImportacion'])->name('importaciones.eliminar');
-
-    
-
+    // ✅ Descarga
+    Route::get('/importaciones/{importacion}/download', [UploadController::class, 'download'])
+        ->name('importaciones.download');
 });
+
 
 //validación de importaciones
 

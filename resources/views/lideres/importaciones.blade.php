@@ -30,9 +30,10 @@
                             <tr>
                                 <td class="px-2 py-1 border">{{ $imp->tabla }}</td>
                                 <td>
-                                    <a href="{{ route('ver.archivo', $imp->archivo_original) }}" target="_blank"    class="text-blue-600 underline">
+                                    <a href="{{ route('importaciones.preview', $imp) }}" class="text-indigo-600 hover:underline" target="_blank">
                                         {{ $imp->archivo_original }}
                                     </a>
+
                                 </td>
                                 <td class="px-2 py-1 text-center border">{{ $imp->filas_importadas }}</td>
                                 <td class="px-2 py-1 border">{{ $imp->user->name ?? 'N/A' }}</td>
